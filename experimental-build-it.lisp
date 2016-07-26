@@ -58,6 +58,18 @@
 				      0)
 			  :executable t)
 
+;;----------------------------------------------------
+;; Ideas
+;;
+;; Use http://www.cliki.net/trivial-dump-core instead of save-and-die
+;; Then we can make the claim that this is cross implementation and get
+;; it in quicklisp
+;;
+
+;; Read these! They pretty much show our technique, except a little less hacky
+;; https://github.com/search?utf8=%E2%9C%93&q=close-foreign-library+save-lisp-and-die&type=Code&ref=searchresults
+
+
 
 ;;----------------------------------------------------
 ;; failed
@@ -75,3 +87,5 @@
 ;; (setf *shipping* t)
 ;; (ql:quickload :alexandria)
 ;; (mapcar #'cffi:close-foreign-library (alexandria:hash-table-values cffi::*foreign-libraries*))
+;;
+;;
