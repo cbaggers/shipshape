@@ -6,6 +6,7 @@
     (ensure-no-directory (local-system-media-path manifest))
     (ensure-no-directory (local-c-library-path manifest))
     ;; Copy all files
+    (copy-all-media manifest)
     (copy-all-c-libs manifest)
     ;;
     (transform-manifest-store-for-shipped)

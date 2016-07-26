@@ -6,7 +6,7 @@
 
 (defun key (system profile)
   (if *shipped*
-      system
+      (asdf:coerce-name system)
       (progn
 	(assert (keywordp profile))
 	(cons (asdf:coerce-name system) profile))))
@@ -23,6 +23,7 @@
                       :accessor system-media-path)
    (copy-paths :initform nil :initarg :copy-paths
                :accessor copy-paths)))
+
 
 (defun find-manifest (system &optional (profile +default-profile+)
                                error-if-missingp)
@@ -58,12 +59,23 @@
       path
       (format nil "~a/" path)))
 
+
 (defmethod initialize-instance :after ((manifest shipping-manifest) &key)
-  (print "IMPLEMENT ME! #'(initialize-instance shipping-manifest)")
-  (with-slots (system system-media-path c-library-path) manifest
+  (with-slots (system profile system-media-path c-library-path copy-paths)
+      manifest
     (setf system (asdf:coerce-name system)
           system-media-path (ensure-dir-name system-media-path)
-          c-library-path (ensure-dir-name c-library-path)))
+          c-library-path (ensure-dir-name c-library-path))
+    ;; we only validate the path can be a valid pathname here, we leave
+    ;; checking if the file/dir exists until later as technically the target
+    ;; could be generated at compile-time. We only need to check they exist
+    ;; when setting sail
+    (let* ((paths (mapcar #'cons (mapcar #'pathname copy-paths) copy-paths))
+	   (problem-paths (mapcar #'cdr (remove-if-not #'car paths))))
+      (unless (every #'identity paths)
+	(error "Could not make manifest ~s for profile ~s as the following
+could not make into valid pathnames:~{~%~s~}"
+	       system profile problem-paths))))
   manifest)
 
 
@@ -77,6 +89,7 @@
 	       (setf (gethash (car k) new-table) v))
 	     *manifests*)
     (setf *manifests* new-table )))
+
 
 (defun transform-manifest-store-for-dev ()
   (let ((new-table (make-hash-table :test #'equal)))
