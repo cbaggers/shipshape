@@ -6,5 +6,8 @@
   :license "BSD 2 Clause"
   :serial t
   :components ((:file "package")
+	       (:file "globals")
                (:file "dependencies")
-               (:file "manifest")))
+               (:file "manifest")
+	       (:file "path")
+	       (:file "ship")))

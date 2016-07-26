@@ -5,8 +5,11 @@
 
 
 (defun key (system profile)
-  (assert (keywordp profile))
-  (cons (asdf:coerce-name system) profile))
+  (if *shipped*
+      system
+      (progn
+	(assert (keywordp profile))
+	(cons (asdf:coerce-name system) profile))))
 
 
 (defclass shipping-manifest ()
@@ -16,8 +19,13 @@
 	    :accessor profile)
    (c-library-path :initform "" :initarg :c-library-path
 		   :accessor c-library-path)
+   (system-media-path :initform "media/" :initarg :system-media-path
+		      :accessor system-media-path)
    (copy-paths :initform nil :initarg :copy-paths
 	       :accessor copy-paths)))
+
+(defun find-manifest (system &optional (profile :ship))
+  (gethash (key system profile) *manifests*))
 
 
 (defun add-manifest (manifest)
@@ -29,22 +37,43 @@
       (setf (gethash key *manifests*) manifest))))
 
 
-(defmacro def-shipping-manifest
-    (system &key (profile :ship) c-library-path copy-paths)
+(defmacro def-shipping-manifest (system
+				 &key (profile :ship) c-library-path copy-paths
+				   (system-media-path "media/"))
   `(add-manifest
     (make-instance 'shipping-manifest
 		   :system ',system
 		   :profile ',profile
 		   :c-library-path ',c-library-path
+		   :system-media-path ',system-media-path
 		   :copy-paths ',copy-paths)))
 
 
 (defmethod initialize-instance :after ((manifest shipping-manifest) &key)
   (print "IMPLEMENT ME! #'(initialize-instance shipping-manifest)")
-  (with-slots (system) manifest
-    (setf system (asdf:coerce-name system))))
+  (with-slots (system system-media-path) manifest
+    (setf system (asdf:coerce-name system))
+    (setf system-media-path
+	  (if (char= (elt system-media-path (1- (length system-media-path)))
+		     #\/)
+	      system-media-path
+	      (format nil "~a/" system-media-path)))))
 
 
 (defun find-dependent-manifests (system &key (profile :ship) flat)
-  (walk-dependencies system (lambda (x) (gethash (key x profile) *manifests*))
-		     :flat flat))
+  (walk-dependencies system (lambda (x) (find-manifest x profile)) :flat flat))
+
+
+(defun transform-manifest-store-for-shipped ()
+  (let ((new-table (make-hash-table :test #'equal)))
+    (maphash (lambda (k v)
+	       (setf (gethash (car k) new-table) v))
+	     *manifests*)
+    (setf *manifests* new-table )))
+
+(defun transform-manifest-store-for-dev ()
+  (let ((new-table (make-hash-table :test #'equal)))
+    (maphash (lambda (k v)
+	       (setf (gethash (key k (profile v)) new-table) v))
+	     *manifests*)
+    (setf *manifests* new-table )))
