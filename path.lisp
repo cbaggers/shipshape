@@ -14,3 +14,22 @@
 		   :initial-value (directory-namestring
 				   (first sb-ext:*posix-argv*))))
 	(asdf:system-relative-pathname system path))))
+
+(defun pathname-file-name (pathname)
+  (let ((type (pathname-type pathname))
+	(name (pathname-name pathname)))
+    (if type
+	(format nil "~a.~a" name type)
+	name)))
+
+(defun local-c-library-path (manifest)
+  (local-path (c-library-path manifest)
+	      (system manifest)))
+
+(defun local-system-media-path (manifest)
+  (local-path (system-media-path manifest)
+	      (system manifest)))
+
+(defun ensure-no-directory (pathname)
+  (when (cl-fad:directory-exists-p pathname)
+    (cl-fad:delete-directory-and-files pathname)))
