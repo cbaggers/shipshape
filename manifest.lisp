@@ -1,1 +1,1 @@
-(in-package :ship-shape)
+(in-package :shipshape)
