@@ -11,4 +11,6 @@
                (:file "dependencies")
                (:file "manifest")
 	       (:file "path")
+	       (:file "c-libraries")
+	       (:file "media")
 	       (:file "ship")))
