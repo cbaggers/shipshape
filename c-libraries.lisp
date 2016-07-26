@@ -10,3 +10,6 @@
                                 (pathname-file-name src)))))
     (ensure-directories-exist dst)
     (cl-fad:copy-file src dst)))
+
+(defun disconnect-all-c-libs ()
+  (map 'nil #'cffi:close-foreign-library (cffi:list-foreign-libraries)))

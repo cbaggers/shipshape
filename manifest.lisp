@@ -17,6 +17,8 @@
 	   :accessor system)
    (profile :initform +default-profile+ :initarg :profile
             :accessor profile)
+   (binary-name :initform nil :initarg :binary-name
+            :accessor binary-name)
    (c-library-path :initform "" :initarg :c-library-path
                    :accessor c-library-path)
    (system-media-path :initform "media/" :initarg :system-media-path
@@ -42,7 +44,7 @@
       (setf (gethash key *manifests*) manifest))))
 
 
-(defmacro def-shipping-manifest (system
+(defmacro def-shipping-manifest (system binary-name
                                  &key (profile :+default-profile+)
                                    c-library-path copy-paths
                                    (system-media-path "media/"))
@@ -50,6 +52,7 @@
     (make-instance 'shipping-manifest
                    :system ',system
                    :profile ',profile
+		   :binary-name ',binary-name
                    :c-library-path ',c-library-path
                    :system-media-path ',system-media-path
                    :copy-paths ',copy-paths)))
@@ -61,11 +64,16 @@
 
 
 (defmethod initialize-instance :after ((manifest shipping-manifest) &key)
-  (with-slots (system profile system-media-path c-library-path copy-paths)
+  (with-slots (system profile system-media-path c-library-path copy-paths
+		      binary-name)
       manifest
     (setf system (asdf:coerce-name system)
           system-media-path (ensure-dir-name system-media-path)
-          c-library-path (ensure-dir-name c-library-path))
+          c-library-path (ensure-dir-name c-library-path)
+	  binary-name (pathname-file-name
+		       (etypecase binary-name
+			 (symbol (string-downcase binary-name))
+			 ((or pathname string) binary-name))))
     ;; we only validate the path can be a valid pathname here, we leave
     ;; checking if the file/dir exists until later as technically the target
     ;; could be generated at compile-time. We only need to check they exist
@@ -83,10 +91,11 @@ could not make into valid pathnames:~{~%~s~}"
   (walk-dependencies system (lambda (x) (find-manifest x profile)) :flat flat))
 
 
-(defun transform-manifest-store-for-shipped ()
+(defun transform-manifest-store-for-shipped (profile)
   (let ((new-table (make-hash-table :test #'equal)))
     (maphash (lambda (k v)
-	       (setf (gethash (car k) new-table) v))
+	       (when (eq (cdr k) profile)
+		 (setf (gethash (car k) new-table) v)))
 	     *manifests*)
     (setf *manifests* new-table )))
 

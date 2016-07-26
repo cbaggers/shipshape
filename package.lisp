@@ -1,5 +1,6 @@
 ;;;; package.lisp
 
 (defpackage #:shipshape
-  (:use #:cl))
-
+  (:use #:cl)
+  (:export :def-shipping-manifest
+	   :ship-it))
