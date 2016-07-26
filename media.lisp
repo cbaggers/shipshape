@@ -1,14 +1,5 @@
 (in-package :shipshape)
 
-;; - can be any type accepted by #'pathname
-
-;; the system does the following
-;; - get the absolute path relative to the system
-;; - check if #'cl-fad:directory-exists-p
-;;   - if yes then copy all containing files recursively
-;;   - if no then check #'cl-fad:file-exists-p
-;;      - if yes then copy file
-;;      - if no then throw error
 
 (defun validate-and-process-copy-paths (system paths)
   ;; We do this together so we can aggregate the error message
@@ -28,10 +19,18 @@ don't exist:~{~%~s~}" problem)
 
 
 (defun copy-all-media (manifest)
+  (map nil #'(lambda (x) (copy-all-media-for-single-manifest x manifest))
+       (cons manifest (find-dependent-manifests (system manifest)
+						:profile (profile manifest)
+						:flat t))))
+
+
+(defun copy-all-media-for-single-manifest (source-manifest target-manifest)
   (assert (not *shipped*))
-  (with-slots (system copy-paths) manifest
+  (with-slots (system copy-paths) source-manifest
     (let ((paths (validate-and-process-copy-paths system copy-paths)))
-      (map nil (lambda (p) (copy-media p manifest)) paths))))
+      (map nil (lambda (p) (copy-media p target-manifest)) paths))))
+
 
 (defun copy-media (path manifest)
   (cond ((cl-fad:directory-exists-p path) (copy-dir path manifest))
@@ -47,7 +46,8 @@ don't exist:~{~%~s~}" problem)
 			      (pathname-file-name src))
 			:initial-value (local-system-media-path manifest))))
       (ensure-directories-exist dst)
-      (cl-fad:copy-file src dst))))
+      (cl-fad:copy-file src dst :overwrite t))))
+
 
 (defun copy-dir (path manifest)
   (cl-fad:walk-directory path (lambda (x) (copy-file x manifest))))
