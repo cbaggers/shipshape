@@ -33,7 +33,7 @@
 	     system-name profile))
 
     ;; delete any existing build
-    (ensure-no-directory (local-system-media-path manifest))
+    (ensure-no-directory (local-media-path manifest))
     (ensure-no-directory (local-c-library-path manifest))
 
     ;; Copy all files

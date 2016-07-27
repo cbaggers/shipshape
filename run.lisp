@@ -13,8 +13,8 @@
   #+sbcl(%run-sbcl)
 
   ;; re-attach all the c libraries we need
-  (cl-fad:walk-directory (shipped-c-library-path manifest)
-			 #'cffi:load-foreign-library)
+  (cl-fad:walk-directory (local-c-library-path manifest)
+                         #'cffi:load-foreign-library)
   ;; kick off main func
   (funcall (symbol-function (main-function-name manifest)))
 
@@ -30,4 +30,4 @@
   #+unix
   (sb-posix:putenv
    (format nil "SBCL_HOME=~A"
-	   #.(sb-ext:posix-getenv "SBCL_HOME"))))
+           #.(sb-ext:posix-getenv "SBCL_HOME"))))
