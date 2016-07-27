@@ -8,19 +8,21 @@
   (if *shipped*
       (asdf:coerce-name system)
       (progn
-	(assert (keywordp profile))
-	(cons (asdf:coerce-name system) profile))))
+        (assert (keywordp profile))
+        (cons (asdf:coerce-name system) profile))))
 
 
 (defclass shipping-manifest ()
   ((system :initform nil :initarg :system
-	   :accessor system)
+           :accessor system)
    (profile :initform +default-profile+ :initarg :profile
             :accessor profile)
    (main-function-name :initform nil :initarg :main-function-name
-		       :accessor main-function-name)
+                       :accessor main-function-name)
+   (build-path :initform nil :initarg :build-path
+               :accessor build-path)
    (binary-name :initform nil :initarg :binary-name
-            :accessor binary-name)
+                :accessor binary-name)
    (c-library-path :initform "" :initarg :c-library-path
                    :accessor c-library-path)
    (system-media-path :initform "media/" :initarg :system-media-path
@@ -55,25 +57,26 @@
 
 (defmethod initialize-instance :after ((manifest shipping-manifest) &key)
   (with-slots (system profile system-media-path c-library-path copy-paths
-		      binary-name)
+                      binary-name build-path)
       manifest
     (setf system (asdf:coerce-name system)
           system-media-path (ensure-dir-name system-media-path)
           c-library-path (ensure-dir-name c-library-path)
-	  binary-name (pathname-file-name
-		       (etypecase binary-name
-			 (symbol (string-downcase binary-name))
-			 ((or pathname string) binary-name))))
+	  build-path (ensure-dir-name build-path)
+          binary-name (pathname-file-name
+                       (etypecase binary-name
+                         (symbol (string-downcase binary-name))
+                         ((or pathname string) binary-name))))
     ;; we only validate the path can be a valid pathname here, we leave
     ;; checking if the file/dir exists until later as technically the target
     ;; could be generated at compile-time. We only need to check they exist
     ;; when setting sail
     (let* ((paths (mapcar #'cons (mapcar #'pathname copy-paths) copy-paths))
-	   (problem-paths (mapcar #'cdr (remove-if-not #'car paths))))
+           (problem-paths (mapcar #'cdr (remove-if-not #'car paths))))
       (unless (every #'identity paths)
-	(error "Could not make manifest ~s for profile ~s as the following
+        (error "Could not make manifest ~s for profile ~s as the following
 could not make into valid pathnames:~{~%~s~}"
-	       system profile problem-paths))))
+               system profile problem-paths))))
   manifest)
 
 
@@ -84,17 +87,17 @@ could not make into valid pathnames:~{~%~s~}"
 (defun transform-manifest-store-for-shipped (profile)
   (let ((new-table (make-hash-table :test #'equal)))
     (maphash (lambda (k v)
-	       (when (eq (cdr k) profile)
-		 (setf (gethash (car k) new-table) v)))
-	     *manifests*)
+               (when (eq (cdr k) profile)
+                 (setf (gethash (car k) new-table) v)))
+             *manifests*)
     (setf *manifests* new-table )))
 
 
 (defun transform-manifest-store-for-dev ()
   (let ((new-table (make-hash-table :test #'equal)))
     (maphash (lambda (k v)
-	       (setf (gethash (key k (profile v)) new-table) v))
-	     *manifests*)
+               (setf (gethash (key k (profile v)) new-table) v))
+             *manifests*)
     (setf *manifests* new-table )))
 
 
@@ -102,29 +105,33 @@ could not make into valid pathnames:~{~%~s~}"
 ;; Macro
 
 (defmacro def-shipping-manifest (system main-function-name &body args)
-  (assert (symbolp main-function-name))
-  (destructuring-bind (profile binary-name c-library-path
-			       system-media-path paths)
-      (check-macro-args (parse-macro-args system args))
-    `(add-manifest
-      (make-instance 'shipping-manifest
-		     :system ',system
-		     :profile ',profile
-		     :binary-name ',binary-name
-		     :main-function-name ',main-function-name
-		     :c-library-path ',c-library-path
-		     :system-media-path ',system-media-path
-		     :copy-paths ',paths))))
+  (let ((system (asdf:coerce-name system)))
+    (assert (symbolp main-function-name))
+    (destructuring-bind (profile build-path binary-name c-library-path
+				 system-media-path paths)
+	(check-macro-args (parse-macro-args system args))
+      `(add-manifest
+	(make-instance 'shipping-manifest
+		       :system ',system
+		       :profile ',profile
+		       :build-path ,build-path
+		       :binary-name ,binary-name
+		       :main-function-name ',main-function-name
+		       :c-library-path ,c-library-path
+		       :system-media-path ,system-media-path
+		       :copy-paths ',paths)))))
 
 (defun check-macro-args (args)
-  (destructuring-bind (profile binary-name c-library-path
-			       system-media-path paths) args
+  (destructuring-bind (profile build-path binary-name c-library-path
+                               system-media-path paths) args
     (assert (symbolp profile))
     (assert (stringp binary-name))
     (assert (or (stringp c-library-path)
-		(pathnamep c-library-path)))
+                (pathnamep c-library-path)))
     (assert (or (stringp system-media-path)
-		(pathnamep system-media-path)))
+                (pathnamep system-media-path)))
+    (assert (or (stringp build-path)
+                (pathnamep build-path)))
     (assert (every #'string paths))
     args))
 
@@ -134,32 +141,37 @@ could not make into valid pathnames:~{~%~s~}"
   #-windows
   system)
 
+(defun default-build-path (system)
+  (format nil "build-~a" system))
+
 (defun parse-macro-args (system args)
-  (let* ((system (asdf:coerce-name system))
-	 (profile :ship)
-	 (binary-name (default-binary-name system))
-	 (c-library-path "c-deps")
-	 (system-media-path "sys-media")
-	 (paths nil))
+  (let* ((profile :ship)
+         (build-path (default-build-path system))
+         (binary-name (default-binary-name system))
+         (c-library-path "c-deps")
+         (system-media-path "sys-media")
+         (paths nil))
     (labels ((eat-something (e)
-	       (etypecase (first e)
-		 ((or pathname string) (eat-paths e))
-		 (keyword (eat-pair e))))
-	     (eat-paths (e)
-	       (setf paths e))
-	     (eat-pair (e)
-	       (destructuring-bind (k v . rest) e
-		 (set-pair k v)
-		 (eat-something rest)))
-	     (set-pair (k v)
-	       (ecase k
-		 (:profile (setf profile v))
-		 (:binary-name (setf binary-name v))
-		 (:c-library-path (setf c-library-path v))
-		 (:system-media-path (setf system-media-path v)))))
+               (etypecase (first e)
+                 ((or pathname string) (eat-paths e))
+                 (keyword (eat-pair e))))
+             (eat-paths (e)
+               (setf paths e))
+             (eat-pair (e)
+               (destructuring-bind (k v . rest) e
+                 (set-pair k v)
+                 (eat-something rest)))
+             (set-pair (k v)
+               (ecase k
+                 (:build-path (setf build-path v))
+                 (:profile (setf profile v))
+                 (:binary-name (setf binary-name v))
+                 (:c-library-path (setf c-library-path v))
+                 (:system-media-path (setf system-media-path v)))))
       (eat-something args)
       (list profile
-	    binary-name
-	    c-library-path
-	    system-media-path
-	    paths))))
+            build-path
+            binary-name
+            c-library-path
+            system-media-path
+            paths))))
