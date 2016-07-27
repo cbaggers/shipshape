@@ -49,11 +49,10 @@
     ;; and now we can save
     (let ((binary-path (merge-pathnames
 			(binary-name manifest)
-			(local-path (build-path manifest) (system manifest)))))
+			(local-path (build-path manifest)
+				    (system manifest)))))
       (setf *shipped* t)
-      (trivial-dump-core:save-executable
-       binary-path
-       (wrap-main-function manifest))
+      (save-core binary-path manifest)
       (format t "~%Binary written to ~a" binary-path))))
 
 

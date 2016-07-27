@@ -15,4 +15,5 @@
 	       (:file "c-libraries")
 	       (:file "media")
 	       (:file "run")
+	       (:file "save-core")
 	       (:file "ship")))

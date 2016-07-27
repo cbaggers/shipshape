@@ -37,7 +37,6 @@
                 (asdf:system-relative-pathname system (build-path manifest))))))
 
 
-
 (defun ensure-no-directory (pathname)
   (when (cl-fad:directory-exists-p pathname)
     (cl-fad:delete-directory-and-files pathname)))
