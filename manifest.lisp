@@ -60,6 +60,7 @@
                    :system-media-path ',system-media-path
                    :copy-paths ',copy-paths)))
 
+
 (defun ensure-dir-name (path)
   (if (char= (elt path (1- (length path))) #\/)
       path
