@@ -3,4 +3,5 @@
 (defpackage #:shipshape
   (:use #:cl)
   (:export :def-shipping-manifest
-	   :ship-it))
+	   :ship-it
+	   :local-path))

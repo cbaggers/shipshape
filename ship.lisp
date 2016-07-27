@@ -1,26 +1,27 @@
 (in-package :shipshape)
 
 (defun ship-it (system-name)
-  (unless (asdf:component-loaded-p system-name)
-    (error "No system named ~s was found, has it been loaded yet?"
-	   system-name))
-  (let ((src (asdf:system-relative-pathname :shipshape "build-it.lisp"))
-	(dst (asdf:system-relative-pathname system-name "build-it.lisp")))
-    (cl-fad:copy-file src dst :overwrite t)
+  (let ((system-name (asdf:coerce-name system-name)))
+    (unless (asdf:component-loaded-p system-name)
+      (error "No system named ~s was found, has it been loaded yet?"
+	     system-name))
+    (let ((src (asdf:system-relative-pathname :shipshape "build-it.lisp"))
+	  (dst (asdf:system-relative-pathname system-name "build-it.lisp")))
+      (cl-fad:copy-file src dst :overwrite t)
 
-    ;; If we can then lets run the script for the user..
-    #+(or linux darwin)
-    (asdf:run-shell-command dst)
+      ;; If we can then lets run the script for the user..
+      #+(and sbcl (or linux darwin))
+      (let ((task (format nil "sbcl --load ~s --system ~s" (namestring dst) system-name)))
+	(format t "will now try to run: ~a" task)
+	(asdf/run-program:run-program task :output *standard-output*))
 
-    ;; ..Otherwise let them know how to run it
-    #+windows
-    (format t "Please run your implementation's equivalent of the following: sbcl --load "build-it.lisp" --name ~s"
-	    system-name)))
+      ;; ..Otherwise let them know how to run it
+      #+(or windows (not sbcl))
+      (format t "Please run your implementation's equivalent of the following: sbcl --load "build-it.lisp" --system ~s"
+	      system-name))))
 
 
-(defun set-sail (system-name
-		 main-function-name
-		 &optional (profile +default-profile+))
+(defun set-sail (system-name &optional (profile +default-profile+))
   ;; force load to catch errors
   (unless (asdf:component-loaded-p system-name)
     (asdf:load-system system-name :force t))
@@ -46,10 +47,13 @@
     (transform-manifest-store-for-shipped profile)
 
     ;; and now we can save
-    (setf *shipped* t)
-    (trivial-dump-core:save-executable
-     (binary-name manifest)
-     (wrap-main-function manifest main-function-name))))
+    (let ((binary-path (local-path (binary-name manifest)
+				   (system manifest))))
+      (setf *shipped* t)
+      (trivial-dump-core:save-executable
+       binary-path
+       (wrap-main-function manifest))
+      (format t "~%Binary written to ~a" binary-path))))
 
 
 (defun dock ()
@@ -66,10 +70,6 @@
 				      (< index (length args)))
 			     (nth (1+ index) args))))
 	       value)))
-    (let* ((name (argument "--name"))
-	   (system (or (argument "--system") (intern name :keyword)))
-	   (profile (or (argument "--profile") +default-profile+))
-	   (main (or (argument "--main")
-		     (concatenate 'string (string-upcase name) "::"
-				  (string-upcase name)))))
-      (set-sail system main profile))))
+    (let* ((system (argument "--system"))
+	   (profile (or (argument "--profile") +default-profile+)))
+      (set-sail system profile))))

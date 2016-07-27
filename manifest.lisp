@@ -17,6 +17,8 @@
 	   :accessor system)
    (profile :initform +default-profile+ :initarg :profile
             :accessor profile)
+   (main-function-name :initform nil :initarg :main-function-name
+		       :accessor main-function-name)
    (binary-name :initform nil :initarg :binary-name
             :accessor binary-name)
    (c-library-path :initform "" :initarg :c-library-path
@@ -44,15 +46,16 @@
       (setf (gethash key *manifests*) manifest))))
 
 
-(defmacro def-shipping-manifest (system binary-name
-                                 &key (profile :+default-profile+)
-                                   c-library-path copy-paths
+(defmacro def-shipping-manifest (system binary-name main-function-name
+                                 &key (profile +default-profile+)
+                                   (c-library-path "c-lib/") copy-paths
                                    (system-media-path "media/"))
   `(add-manifest
     (make-instance 'shipping-manifest
                    :system ',system
                    :profile ',profile
 		   :binary-name ',binary-name
+		   :main-function-name ',main-function-name
                    :c-library-path ',c-library-path
                    :system-media-path ',system-media-path
                    :copy-paths ',copy-paths)))
