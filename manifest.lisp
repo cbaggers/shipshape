@@ -46,20 +46,6 @@
       (setf (gethash key *manifests*) manifest))))
 
 
-(defmacro def-shipping-manifest (system binary-name main-function-name
-                                 &key (profile +default-profile+)
-                                   (c-library-path "c-lib/") copy-paths
-                                   (system-media-path "media/"))
-  `(add-manifest
-    (make-instance 'shipping-manifest
-                   :system ',system
-                   :profile ',profile
-		   :binary-name ',binary-name
-		   :main-function-name ',main-function-name
-                   :c-library-path ',c-library-path
-                   :system-media-path ',system-media-path
-                   :copy-paths ',copy-paths)))
-
 
 (defun ensure-dir-name (path)
   (if (char= (elt path (1- (length path))) #\/)
@@ -110,3 +96,70 @@ could not make into valid pathnames:~{~%~s~}"
 	       (setf (gethash (key k (profile v)) new-table) v))
 	     *manifests*)
     (setf *manifests* new-table )))
+
+
+;;----------------------------------------------------------------------
+;; Macro
+
+(defmacro def-shipping-manifest (system main-function-name &body args)
+  (assert (symbolp main-function-name))
+  (destructuring-bind (profile binary-name c-library-path
+			       system-media-path paths)
+      (check-macro-args (parse-macro-args system args))
+    `(add-manifest
+      (make-instance 'shipping-manifest
+		     :system ',system
+		     :profile ',profile
+		     :binary-name ',binary-name
+		     :main-function-name ',main-function-name
+		     :c-library-path ',c-library-path
+		     :system-media-path ',system-media-path
+		     :copy-paths ',paths))))
+
+(defun check-macro-args (args)
+  (destructuring-bind (profile binary-name c-library-path
+			       system-media-path paths) args
+    (assert (symbolp profile))
+    (assert (stringp binary-name))
+    (assert (or (stringp c-library-path)
+		(pathnamep c-library-path)))
+    (assert (or (stringp system-media-path)
+		(pathnamep system-media-path)))
+    (assert (every #'string paths))
+    args))
+
+(defun default-binary-name (system)
+  #+windows
+  (format nil "~a.exe" system)
+  #-windows
+  system)
+
+(defun parse-macro-args (system args)
+  (let* ((system (asdf:coerce-name system))
+	 (profile :ship)
+	 (binary-name (default-binary-name system))
+	 (c-library-path "c-deps")
+	 (system-media-path "sys-media")
+	 (paths nil))
+    (labels ((eat-something (e)
+	       (etypecase (first e)
+		 ((or pathname string) (eat-paths e))
+		 (keyword (eat-pair e))))
+	     (eat-paths (e)
+	       (setf paths e))
+	     (eat-pair (e)
+	       (destructuring-bind (k v . rest) e
+		 (set-pair k v)
+		 (eat-something rest)))
+	     (set-pair (k v)
+	       (ecase k
+		 (:profile (setf profile v))
+		 (:binary-name (setf binary-name v))
+		 (:c-library-path (setf c-library-path v))
+		 (:system-media-path (setf system-media-path v)))))
+      (eat-something args)
+      (list profile
+	    binary-name
+	    c-library-path
+	    system-media-path
+	    paths))))
