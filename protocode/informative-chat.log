@@ -1,0 +1,221 @@
+
+18:52 <Baggers> evening folks, is there a reason to favor something
+                like trivial-dump-core over asdf/bundle?
+
+..
+
+18:54 <jasom> Baggers: those do very different things; perhaps you
+              are thinking of asdf:image-op ?
+18:55 <jasom> Baggers: main issue with ASDF's stuff right now is
+              that it's not possible for the user to specify where
+              the image should go.  There's talk on the mailing
+              list about how to fix that.
+
+..
+
+18:57 <Baggers> jasom: interesting, sorry your right, I was
+                grepping for image-op and saw #'dump-image & the
+                rest. Was suprised
+18:58 <jasom> uiop has something similar to trivial-dump-core as
+              well
+18:58 <Baggers> sorry I mean suprised trivial-dump-core existed
+                when this looked rather thorough
+18:58 <jasom> that's what I use
+18:58 <Baggers> cool
+18:58 <jasom> I bet trivial-dump-core predates ASDF's stuff, but I
+              could be wrong
+18:58 <Baggers> ah yeah, see that now
+18:59 <Baggers> cool, I am very ignorant about asdf, it's probably
+                the thing in lisp I use most and understand least
+18:59 <Baggers> I need to get reading it seems :)
+18:59 <jasom> fare did a decent amount of writing about it.
+
+..
+
+19:01 <jasom> I need to talk with him more; he said something to
+              the effect of xcvb being an evolutionary dead-end in
+              passing and I'm now wondering what he meant by that.
+              There were a lot of really useful things in xcvb, and
+              only some of them made it to asdf.  (Strict
+              enforcement of dependencies, which was something I
+              liked about xcvb can't be brought into asdf without
+              breaking pretty much every system in the wild)
+
+..
+
+19:04 <dlowe> He means that he thought xcvb was better and not
+              enough people agreed with him enough to switch
+
+..
+
+19:04 <akkad> jasom: yeap.
+
+..
+
+19:07 <Baggers> im going to start reading "ASDF 3, or Why Lisp is
+                Now an Acceptable Scripting Language". Do you
+                recommend any other particular texts on asdf?
+
+..
+
+19:16 <jasom> http://fare.livejournal.com/tag/asdf
+19:18 <Baggers> well that's just sensible :)
+19:18 <Baggers> thanks
+19:20 <rszeno> Baggers your "why lisp ..." is from here:
+               http://fare.tunes.org/files/asdf3/asdf3-2014.html ?
+
+..
+
+19:21 <Baggers> yup
+19:22 [rszeno ok, :)]
+19:23 <jackdaniel> 25.806976 – root of all evil
+
+..
+
+19:28 <jasom> actually I think there's some stuff about asdf in
+              here too:
+              http://common-lisp.net/project/xcvb/doc/ilc09-xcvb-paper.pdf
+
+..
+
+19:32 <Baggers> nice, tonight's going to be fun
+19:33 <akkad> (defvar mylist '((:key-string . bar))) (defvar foo
+              "key-string")  (assoc foo mylist) ;; nothing. I need
+              to dereference foo and convert to symbol. Is there a
+              single command for this? or is it a combination of
+              intern/format?
+
+..
+
+19:34 <Xach> akkad: there are many options. intern plus
+             string-upcase would be typical.
+19:34 <akkad> Xach: thanks
+
+..
+
+19:39 <akkad> https://gist.github.com/47ee52833f7a6bbfcd75d320b639a314
+              not sure I'm not doing this right.
+
+..
+
+19:41 <Xach> akkad: you must intern in the package named KEYWORD.
+19:42 <akkad> k. will rtfm that
+19:42 <akkad> ahh
+19:43 <akkad> perfect
+19:44 <jasom> akkad: alexandria has a make-keyword function as a
+              shortcut for that
+
+..
+
+19:45 <jasom> akkad: you still need to do the formatting though
+19:45 <jasom> akkad: I have a format-keyword in one of my projects
+              for doing this
+
+..
+
+19:50 <akkad> oic. will check it out. thanks
+19:51 <jasom> Baggers: I particularly like the quote from Fare from
+              a while ago: "If someone cares about the future of
+              ASDF, I recommend they should address the
+              upgradability bug, which will itself unlock a big
+              hurdle on the way of further evolution of
+              ASDF...Personally, I'd rather work on XCVB, and
+              invite people interested in build systems to work on
+              it instead of ASDF."
+19:52 <jasom> I think he wrote that days before taking over
+              maintenance of asdf
+
+..
+
+19:54 <Xach> and turned it into a kind of xcvb
+
+..
+
+19:55 <jasom> Xach: well that article specifically listed issues he
+              had with asdf that were not intrinsic to its
+              implementation.  Everything but the deterministic
+              parallel builds basically.
+19:56 <Baggers> jasom: Im just reading through uiop and feeling
+                like a muppet for the amount of effort I replicated
+                in various projects
+19:56 <jasom> Baggers: indeed; though uiop is intentionally not
+              complete in terms of providing OS integration.  I
+              think the rule is that anything not used by asdf
+              can't go in there.
+19:57 <jackdaniel> I think UIOP goes way beyond ASDF requirements
+19:57 <jasom> however it is really nice that all the fiddly OS
+              stuff that asdf had to solve got split out into it's
+              own generally useful thing.
+19:57 <jackdaniel> but I wrote about that some time ago
+19:59 <dlowe> free idea: history of lisp on cliki. One page per
+              year, cross-linked.
+19:59 <dlowe> Ideal for a wiki because there's so many points of
+              view and possible contributors
+20:01 <jackdaniel> sounds like a worthwhile effort
+20:01 <jackdaniel> I wouldn't be able to contribute though, I don't
+                   know about lisp history much sadly
+20:02 <pierpa> I will do 1678
+
+..
+
+20:17 <jasom> someone did a phenomenal writeup about the
+              standardization process (KMP?)
+20:18 <Baggers> jasom: yeah that was great, there was a video
+                interview with mccarthy that adds the color of his
+                experiences to the story which was great
+20:18 <jasom> also someone did a talk about why a new ISO standard
+              doesn't make sense
+20:19 <jasom> Seibel
+
+..
+
+20:19 <Xach> i liked the seibel talk very much
+20:20 <Baggers> cool, totally agree with the premise but would like
+                to hear his reasons <gets googling>
+20:20 <jasom> Baggers:
+              https://soundcloud.com/zach-beane/peter-seibel-common-lisp
+20:20 <Baggers> and you're faster than google, thanks
+20:22 <jasom> IIRC the TL;DL is  basically "A standard is expensive
+              and without vendor-buy-in is just an empty piece of
+              paper"
+20:23 <jasom> or more broadly: "A standard is a means to an end,
+              and a new standard wouldn't achieve the ends that
+              those who are asking for one desire"
+
+..
+
+20:25 <Xach> with good historical context
+20:25 <jasom> today I just discovered
+              https://github.com/fare/reader-interception
+20:26 <Xach> the first standard's goal was "keep the federal money
+             hose flowing"
+20:26 <warweasle> Xach: I can has free money?
+20:26 <phoe> I have an idea.
+
+..
+
+20:56 <Baggers> last question for now. I may have missed it whilst
+                reading through uiop but is there a semi reliable
+                way to get the path of the binary when running a
+                saved core (through save-lisp-and-die). This is so
+                I can find media files relative to that binary
+20:57 <jasom> Baggers: I think one of the uiop argument thingys
+              gives you argv[0] which works everywhere but on the
+              mac I think
+20:57 <jasom> and it works on a mac if you aren't in an application
+              bundle
+20:57 <Baggers> oh nice, I was worried about windows support for
+                that
+20:57 <Baggers> good to hear
+
+..
+
+20:59 <jasom> If I know it's on windows I'm lazy and just use the
+              CWD, as when you double-click on an executable it
+              runs in the directory of the executable unless you
+              specify otherwise in a pif (or whatever they call
+              those these days)
+21:00 <Baggers> thanks, that's something I can definitely test when
+                it comes to it
+21:00 <jasom> e.g. when distributing ltk I just drop a tclkit in
+              the same directory as the lisp image
