@@ -8,13 +8,16 @@
     (lambda () (run manifest))))
 
 
+(defun load-c-library (path)
+  (unless (char= (aref (pathname-name path) 0) #\.)
+    (cffi:load-foreign-library path)))
+
 (defun run (manifest)
   ;; setup so implementations specific stuff
   #+sbcl(%run-sbcl)
 
   ;; re-attach all the c libraries we need
-  (cl-fad:walk-directory (local-c-library-path manifest)
-                         #'cffi:load-foreign-library)
+  (cl-fad:walk-directory (local-c-library-path manifest) #'load-c-library)
   ;; kick off main func
   (funcall (symbol-function (main-function-name manifest)))
 
