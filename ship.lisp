@@ -48,9 +48,9 @@
 
     ;; and now we can save
     (let ((binary-path (merge-pathnames
-			(binary-name manifest)
-			(local-path (build-path manifest)
-				    (system manifest)))))
+                        (binary-name manifest)
+                        (local-path (build-path manifest)
+                                    (system manifest)))))
       (setf *shipped* t)
       (save-core binary-path manifest)
       (format t "~%Binary written to ~a" binary-path))))

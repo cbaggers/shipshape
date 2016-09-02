@@ -15,8 +15,8 @@
 (defclass shipping-manifest ()
   ((system :initform nil :initarg :system
            :accessor system)
-   (profile :initform +default-profile+ :initarg :profile
-            :accessor profile)
+   (shipping-profile :initform +default-profile+ :initarg :profile
+                     :accessor shipping-profile)
    (main-function-name :initform nil :initarg :main-function-name
                        :accessor main-function-name)
    (build-path :initform nil :initarg :build-path
@@ -30,7 +30,9 @@
    (copy-paths :initform nil :initarg :copy-paths
                :accessor copy-paths)
    (compression :initform nil :initarg :compression
-               :accessor compression)))
+                :accessor compression)
+   (libs-to-include :initform nil :initarg :libs-to-include
+                    :accessor libs-to-include)))
 
 
 (defun find-manifest (system &optional (profile +default-profile+)
@@ -46,7 +48,7 @@
     (let ((key (key system profile)))
       (when (gethash key *manifests*)
         (warn "A manifest for system ~s with build profile ~s already existed.
- Replacing" system (profile manifest)))
+ Replacing" system (shipping-profile manifest)))
       (setf (gethash key *manifests*) manifest))))
 
 
@@ -58,13 +60,13 @@
 
 
 (defmethod initialize-instance :after ((manifest shipping-manifest) &key)
-  (with-slots (system profile system-media-path c-library-path copy-paths
+  (with-slots (system shipping-profile system-media-path c-library-path copy-paths
                       binary-name build-path)
       manifest
     (setf system (asdf:coerce-name system)
           system-media-path (ensure-dir-name system-media-path)
           c-library-path (ensure-dir-name c-library-path)
-	  build-path (ensure-dir-name build-path)
+          build-path (ensure-dir-name build-path)
           binary-name (pathname-file-name
                        (etypecase binary-name
                          (symbol (string-downcase binary-name))
@@ -78,7 +80,7 @@
       (unless (every #'identity paths)
         (error "Could not make manifest ~s for profile ~s as the following
 could not make into valid pathnames:~{~%~s~}"
-               system profile problem-paths))))
+               system shipping-profile problem-paths))))
   manifest)
 
 
@@ -110,19 +112,19 @@ could not make into valid pathnames:~{~%~s~}"
   (let ((system (asdf:coerce-name system)))
     (assert (symbolp main-function-name))
     (destructuring-bind (profile build-path binary-name c-library-path
-				 system-media-path paths compression)
-	(check-macro-args (parse-macro-args system args))
+                                 system-media-path paths compression)
+        (check-macro-args (parse-macro-args system args))
       `(add-manifest
-	(make-instance 'shipping-manifest
-		       :system ',system
-		       :profile ',profile
-		       :build-path ,build-path
-		       :binary-name ,binary-name
-		       :main-function-name ',main-function-name
-		       :c-library-path ,c-library-path
-		       :system-media-path ,system-media-path
-		       :copy-paths ',paths
-		       :compression ,compression)))))
+        (make-instance 'shipping-manifest
+                       :system ',system
+                       :profile ',profile
+                       :build-path ,build-path
+                       :binary-name ,binary-name
+                       :main-function-name ',main-function-name
+                       :c-library-path ,c-library-path
+                       :system-media-path ,system-media-path
+                       :copy-paths ',paths
+                       :compression ,compression)))))
 
 (defun check-macro-args (args)
   (destructuring-bind (profile build-path binary-name c-library-path
@@ -137,8 +139,8 @@ could not make into valid pathnames:~{~%~s~}"
                 (pathnamep build-path)))
     (assert (every #'string paths))
     (assert (and (numberp compression)
-		 (>= compression -1)
-		 (<= compression 9)))
+                 (>= compression -1)
+                 (<= compression 9)))
     args))
 
 (defun default-binary-name (system)
@@ -157,7 +159,7 @@ could not make into valid pathnames:~{~%~s~}"
          (c-library-path "c-deps")
          (system-media-path "sys-media")
          (paths nil)
-	 (compression -1))
+         (compression -1))
     (labels ((eat-something (e)
                (etypecase (first e)
                  ((or pathname string) (eat-paths e))
@@ -175,7 +177,7 @@ could not make into valid pathnames:~{~%~s~}"
                  (:binary-name (setf binary-name v))
                  (:c-library-path (setf c-library-path v))
                  (:system-media-path (setf system-media-path v))
-		 (:compression (setf compression v)))))
+                 (:compression (setf compression v)))))
       (eat-something args)
       (list profile
             build-path
@@ -183,4 +185,4 @@ could not make into valid pathnames:~{~%~s~}"
             c-library-path
             system-media-path
             paths
-	    compression))))
+            compression))))

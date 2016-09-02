@@ -17,13 +17,13 @@
 (defun local-media-path (manifest &optional (path ""))
   (with-slots (system system-media-path) manifest
     (reduce #'(lambda (x y) (merge-pathnames y x))
-	    (list system-media-path
-		  (format nil "~a/" system)
-		  path)
-	    :initial-value
-	    (if *shipped*
-		(directory-namestring (first sb-ext:*posix-argv*))
-		(asdf:system-relative-pathname system (build-path manifest))))))
+            (list system-media-path
+                  (format nil "~a/" system)
+                  path)
+            :initial-value
+            (if *shipped*
+                (directory-namestring (first sb-ext:*posix-argv*))
+                (asdf:system-relative-pathname system (build-path manifest))))))
 
 
 (defun local-c-library-path (manifest &optional (path ""))
@@ -32,7 +32,7 @@
             (list c-library-path
                   path)
             :initial-value
-	    (if *shipped*
+            (if *shipped*
                 (directory-namestring (first sb-ext:*posix-argv*))
                 (asdf:system-relative-pathname system (build-path manifest))))))
 

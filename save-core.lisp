@@ -15,9 +15,9 @@
 (defun %save-executable-sbcl (filename manifest)
   (let ((init-function (wrap-main-function manifest)))
     (if (trivial-dump-core::is-slime-running)
-	(trivial-dump-core::print-save-slime-and-die-help
-	 filename init-function)
-	(sb-ext:save-lisp-and-die filename
-				  :toplevel init-function
-				  :executable t
-				  :compression (compression manifest)))))
+        (trivial-dump-core::print-save-slime-and-die-help
+         filename init-function)
+        (sb-ext:save-lisp-and-die filename
+                                  :toplevel init-function
+                                  :executable t
+                                  :compression (compression manifest)))))
