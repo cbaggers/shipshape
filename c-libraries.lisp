@@ -1,13 +1,35 @@
 (in-package :shipshape)
 
+(defvar *expected-libs-file* ".expected_libs")
+
 (defun copy-all-c-libs (manifest)
+  ;;
+  ;; record expected libs
+  (let* ((path (uiop:subpathname (uiop:ensure-directory-pathname
+                                  (local-c-library-path manifest))
+                                 *expected-libs-file*))
+         (to-include (mapcar #'first (mapcar #'uiop:ensure-list
+                                             (libs-to-include manifest))))
+         (libs (mapcar (lambda (x)
+                         (namestring (cffi:foreign-library-pathname x)))
+                       (remove-if (lambda (x) (member x to-include))
+                                  (cffi:list-foreign-libraries)
+                                  :key #'cffi:foreign-library-name))))
+    (ensure-directories-exist (uiop:pathname-directory-pathname path))
+    (with-open-file (s path
+                       :direction :output
+                       :if-exists :supersede
+                       :if-does-not-exist :create)
+      (format s "~{~a~^~%~}" libs)))
+  ;;
+  ;; copy included libs
   (map nil (lambda (x)
              (destructuring-bind (name &optional directive)
                  (if (listp x) x (list x))
                (cond
                  ((null directive) (copy-c-lib name manifest))
                  ((eq directive :recur) (copy-lib-and-recur name manifest)))))
-       (print (libs-to-include manifest))))
+       (libs-to-include manifest)))
 
 (defun lib-name-to-path (name)
   (let ((lib (find name (cffi:list-foreign-libraries)

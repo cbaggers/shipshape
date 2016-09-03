@@ -3,7 +3,6 @@
 
 (defvar *manifests* (make-hash-table :test #'equal))
 
-
 (defun key (system profile)
   (if *shipped*
       (asdf:coerce-name system)

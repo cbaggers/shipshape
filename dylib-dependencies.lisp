@@ -151,21 +151,12 @@
      :for complete := (rpath-to-absolute incomplete-rpath potential)
      :when (uiop:file-exists-p complete) :return complete))
 
-(defun find-relative-lib (incomplete-rpath)
-  (assert (uiop:relative-pathname-p incomplete-rpath))
-  (let ((search-paths (initial-rpath-stack)))
-    (loop :for potential :in search-paths
-       :for complete := (uiop:subpathname* potential incomplete-rpath)
-       :when (uiop:file-exists-p complete) :return complete)))
-
 (defun process-dep-path (pathname rpath-stack)
-  (let* ((pathname (if (rpath-p pathname)
-                       (or (find-rpath pathname rpath-stack)
-                           pathname)
-                       pathname))
-         (pathname (if (uiop:relative-pathname-p pathname)
-                       (or (find-relative-lib pathname) pathname)
-                       pathname)))
+  (let* ((pathname (unless (exepath-p pathname)
+                     (if (rpath-p pathname)
+                         (or (find-rpath pathname rpath-stack)
+                             pathname)
+                         pathname))))
     (assert (or (null pathname) (uiop:absolute-pathname-p pathname)))
     pathname))
 
@@ -236,7 +227,7 @@
            (pairs (x)
              (mapcar #'pair (dylib-dependencies x))))
     (let ((pairs (pairs f)))
-      (format t "~%fixing ~s~%with ~s" f pairs)
+      ;;(format t "~%fixing ~s~%with ~s" f pairs)
       (values pairs
               (dylib-set-options
                f :name (new-name f) :dependencies (reduce #'append pairs))))))
@@ -244,9 +235,10 @@
 (defun copy-and-fix-dylib (lib to swap-rpath-for)
   (let* ((to (uiop:ensure-directory-pathname to))
          (swap-rpath-for (uiop:ensure-directory-pathname swap-rpath-for))
-         (dependencies
+         (lib-and-dependencies
           (remove-duplicates
-           (cons lib (alexandria:flatten (walk-dylib-dependencies lib)))
+           (cons (uiop:parse-unix-namestring lib)
+                 (alexandria:flatten (walk-dylib-dependencies lib)))
            :test #'pathname-match-p)))
     (labels ((dest-file-name (f)
                (uiop:ensure-pathname
@@ -258,8 +250,6 @@
              (copy-and-fix (l)
                (let ((d (dest-file-name l)))
                  (uiop:copy-file l d)
-                 (%fix-dylib d swap-rpath-for)
-                 )))
+                 (%fix-dylib d swap-rpath-for))))
       (ensure-directories-exist to)
-      (mapcar #'copy-and-fix dependencies)
-      (copy-and-fix lib))))
+      (mapcar #'copy-and-fix lib-and-dependencies))))
