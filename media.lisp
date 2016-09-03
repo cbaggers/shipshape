@@ -6,23 +6,23 @@
   ;; this makes it less tedious to fix
   (labels ((path (p) (local-path p system)))
     (let* ((absolute-paths (mapcar #'path paths))
-	   (exist (mapcar (lambda (p)
-			    (or (cl-fad:file-exists-p p)
-				(cl-fad:directory-exists-p p)))
-			  absolute-paths))
-	   (problem (remove nil (mapcar (lambda (e a) (unless e a))
-					exist absolute-paths))))
+           (exist (mapcar (lambda (p)
+                            (or (cl-fad:file-exists-p p)
+                                (cl-fad:directory-exists-p p)))
+                          absolute-paths))
+           (problem (remove nil (mapcar (lambda (e a) (unless e a))
+                                        exist absolute-paths))))
       (if problem
-	  (error "Could not proceed with build as the following files/directories
+          (error "Could not proceed with build as the following files/directories
 don't exist:~{~%~s~}" problem)
-	  absolute-paths))))
+          absolute-paths))))
 
 
 (defun copy-all-media (manifest)
   (map nil #'(lambda (x) (copy-all-media-for-single-manifest x manifest))
        (cons manifest (find-dependent-manifests (system manifest)
-						:profile (profile manifest)
-						:flat t))))
+                                                :profile (shipping-profile manifest)
+                                                :flat t))))
 
 
 (defun copy-all-media-for-single-manifest (source-manifest target-manifest)
@@ -34,15 +34,15 @@ don't exist:~{~%~s~}" problem)
 
 (defun copy-media (path manifest)
   (cond ((cl-fad:directory-exists-p path) (copy-dir path manifest))
-	((cl-fad:file-exists-p path) (copy-file path manifest))
-	(t (error "Invalid path ~s~%This is a bug, please report it at:~%https://github.com/cbaggers/shipshape/issues"
-		  path))))
+        ((cl-fad:file-exists-p path) (copy-file path manifest))
+        (t (error "Invalid path ~s~%This is a bug, please report it at:~%https://github.com/cbaggers/shipshape/issues"
+                  path))))
 
 (defun copy-file (path manifest)
   (with-slots (system system-media-path) manifest
     (let* ((src (local-path path system))
-	   (dst (merge-pathnames (pathname-file-name src)
-				 (local-media-path manifest))))
+           (dst (merge-pathnames (pathname-file-name src)
+                                 (local-media-path manifest))))
       (ensure-directories-exist dst)
       (cl-fad:copy-file src dst :overwrite t))))
 

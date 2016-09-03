@@ -1,8 +1,10 @@
 (in-package :shipshape)
 
 (defun ship-it (system-name)
-  (let ((system-name (asdf:coerce-name system-name)))
-    (unless (asdf:component-loaded-p system-name)
+  (let ((system-name
+         (or (asdf:coerce-name system-name)
+             (error "Could not coerce "))))
+    (unless (asdf:find-component system-name nil)
       (error "No system named ~s was found, has it been loaded yet?"
              system-name))
     (let ((src (asdf:system-relative-pathname :shipshape "build-it.lisp"))
@@ -48,9 +50,9 @@
 
     ;; and now we can save
     (let ((binary-path (merge-pathnames
-			(binary-name manifest)
-			(local-path (build-path manifest)
-				    (system manifest)))))
+                        (binary-name manifest)
+                        (local-path (build-path manifest)
+                                    (system manifest)))))
       (setf *shipped* t)
       (save-core binary-path manifest)
       (format t "~%Binary written to ~a" binary-path))))

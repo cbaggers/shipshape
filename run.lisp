@@ -9,8 +9,14 @@
 
 
 (defun load-c-library (path)
-  (unless (char= (aref (pathname-name path) 0) #\.)
-    (cffi:load-foreign-library path)))
+  (if (char= (aref (pathname-name path) 0) #\.)
+      (when (equal (pathname-name path) *expected-libs-file*)
+        (with-open-file (s path)
+          (loop :for line := (read-line s nil) :while line :do
+             (format t "~%---LOADING SYSTEM LIB ~s" line)
+             (cffi:load-foreign-library line))))
+      (cffi:load-foreign-library path)))
+
 
 (defun run (manifest)
   ;; setup so implementations specific stuff
@@ -18,6 +24,7 @@
 
   ;; re-attach all the c libraries we need
   (cl-fad:walk-directory (local-c-library-path manifest) #'load-c-library)
+
   ;; kick off main func
   (funcall (symbol-function (main-function-name manifest)))
 
