@@ -4,13 +4,14 @@
 ;; after shipped (and if has manifest) is local to media/system-name/
 
 (defun local-path (path system)
-  ;; local-media-path is inlines as then the compiler will optimize away
+  ;; local-media-path is inlined as then the compiler will optimize away
   ;; the redudent conditionals
   (declare (inline local-media-path))
   (let ((manifest (when *shipped* (find-manifest system))))
-    (format t "shipped ~a, manifest ~a" *shipped* manifest)
     (if manifest
-        (local-media-path manifest path)
+        (progn
+          (format t "~%shipped ~a, manifest ~a" *shipped* manifest)
+          (local-media-path manifest path))
         (asdf:system-relative-pathname system path))))
 
 

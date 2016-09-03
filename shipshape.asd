@@ -7,6 +7,7 @@
   :serial t
   :depends-on (#:trivial-dump-core #:cl-fad #:cffi)
   :components ((:file "package")
+               (:file "dylib-dependencies")
                (:file "globals")
                (:file "utils")
                (:file "dependencies")

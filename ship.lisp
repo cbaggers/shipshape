@@ -1,8 +1,10 @@
 (in-package :shipshape)
 
 (defun ship-it (system-name)
-  (let ((system-name (asdf:coerce-name system-name)))
-    (unless (asdf:component-loaded-p system-name)
+  (let ((system-name
+         (or (asdf:coerce-name system-name)
+             (error "Could not coerce "))))
+    (unless (asdf:find-component system-name nil)
       (error "No system named ~s was found, has it been loaded yet?"
              system-name))
     (let ((src (asdf:system-relative-pathname :shipshape "build-it.lisp"))

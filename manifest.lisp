@@ -44,8 +44,8 @@
 
 
 (defun add-manifest (manifest)
-  (with-slots (system profile) manifest
-    (let ((key (key system profile)))
+  (with-slots (system shipping-profile) manifest
+    (let ((key (key system shipping-profile)))
       (when (gethash key *manifests*)
         (warn "A manifest for system ~s with build profile ~s already existed.
  Replacing" system (shipping-profile manifest)))
@@ -100,7 +100,7 @@ could not make into valid pathnames:~{~%~s~}"
 (defun transform-manifest-store-for-dev ()
   (let ((new-table (make-hash-table :test #'equal)))
     (maphash (lambda (k v)
-               (setf (gethash (key k (profile v)) new-table) v))
+               (setf (gethash (key k (shipping-profile v)) new-table) v))
              *manifests*)
     (setf *manifests* new-table )))
 
@@ -112,7 +112,8 @@ could not make into valid pathnames:~{~%~s~}"
   (let ((system (asdf:coerce-name system)))
     (assert (symbolp main-function-name))
     (destructuring-bind (profile build-path binary-name c-library-path
-                                 system-media-path paths compression)
+                                 system-media-path paths compression
+                                 libs-to-include)
         (check-macro-args (parse-macro-args system args))
       `(add-manifest
         (make-instance 'shipping-manifest
@@ -124,11 +125,13 @@ could not make into valid pathnames:~{~%~s~}"
                        :c-library-path ,c-library-path
                        :system-media-path ,system-media-path
                        :copy-paths ',paths
-                       :compression ,compression)))))
+                       :compression ,compression
+                       :libs-to-include ',libs-to-include)))))
 
 (defun check-macro-args (args)
   (destructuring-bind (profile build-path binary-name c-library-path
-                               system-media-path paths compression) args
+                               system-media-path paths compression
+                               libs-to-include) args
     (assert (symbolp profile))
     (assert (stringp binary-name))
     (assert (or (stringp c-library-path)
@@ -141,6 +144,16 @@ could not make into valid pathnames:~{~%~s~}"
     (assert (and (numberp compression)
                  (>= compression -1)
                  (<= compression 9)))
+    (assert (and (listp libs-to-include)
+                 (every (lambda (x)
+                          (or (stringp x)
+                              (pathnamep x)
+                              (symbolp x)
+                              (and (listp x)
+                                   (= (length x) 2)
+                                   (symbolp (first x))
+                                   (keywordp (second x)))))
+                        libs-to-include)))
     args))
 
 (defun default-binary-name (system)
@@ -158,6 +171,7 @@ could not make into valid pathnames:~{~%~s~}"
          (binary-name (default-binary-name system))
          (c-library-path "c-deps")
          (system-media-path "sys-media")
+         (libs-to-include nil)
          (paths nil)
          (compression -1))
     (labels ((eat-something (e)
@@ -177,7 +191,8 @@ could not make into valid pathnames:~{~%~s~}"
                  (:binary-name (setf binary-name v))
                  (:c-library-path (setf c-library-path v))
                  (:system-media-path (setf system-media-path v))
-                 (:compression (setf compression v)))))
+                 (:compression (setf compression v))
+                 (:libs-to-include (setf libs-to-include v)))))
       (eat-something args)
       (list profile
             build-path
@@ -185,4 +200,5 @@ could not make into valid pathnames:~{~%~s~}"
             c-library-path
             system-media-path
             paths
-            compression))))
+            compression
+            libs-to-include))))
