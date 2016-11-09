@@ -1,0 +1,7 @@
+otool -l "/Library/Frameworks/SDL2_mixer.framework/SDL2_mixer" | grep -A 2 RPATH
+
+
+;; the fuck? this works now...what was I doing before then?
+(let* ((path "/Library/Frameworks/SDL2_mixer.framework/SDL2_mixer")
+       (cmd (format nil "otool -l ~s | grep -A 2 RPATH" path)))
+  (uiop:run-program cmd :force-shell nil :output :string))
