@@ -6,7 +6,6 @@
 (defun local-path (path system)
   ;; local-media-path is inlined as then the compiler will optimize away
   ;; the redudent conditionals
-  (declare (inline local-media-path))
   (let ((manifest (when *shipped* (find-manifest system))))
     (if manifest
         (progn
