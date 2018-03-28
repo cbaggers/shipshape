@@ -40,10 +40,22 @@
   (assert (not *shipped*))
   (let* ((src (lib-name-to-path cffi-name))
          (dst (pathname (format nil "~a~a" (local-c-library-path manifest)
-                                (pathname-file-name src)))))
-    (format t "~%--- COPYING ~S TO ~S" src dst)
-    (ensure-directories-exist dst)
-    (cl-fad:copy-file src dst)))
+                                (pathname-file-name src))))
+         (src-exists (probe-file src)))
+    (if src-exists
+        (progn
+          (format t "~%--- COPYING ~S TO ~S" src dst)
+          (ensure-directories-exist dst)
+          (cl-fad:copy-file src dst))
+        (progn
+          (format t "~%--- MISSING C LIB ~S. RECORDING" src)
+          (let ((dst (pathname (format nil "~a.missing.txt" dst))))
+            (with-open-file (stream dst
+                                    :if-exists :supersede
+                                    :if-does-not-exist :create
+                                    :direction :output)
+              (format stream "File '~a' missing.~%Please delete this file and replace with actually library.~%~%Note: Must be named as above.~%"
+                      src)))))))
 
 (defun copy-lib-and-recur (cffi-name manifest)
   (if (uiop:os-macosx-p)
