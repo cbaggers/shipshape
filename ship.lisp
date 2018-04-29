@@ -19,7 +19,7 @@
 
       ;; ..Otherwise let them know how to run it
       #+(or windows (not sbcl))
-      (format t "Please run your implementation's equivalent of the following: sbcl --load "build-it.lisp" --system ~s"
+      (format t "Please run your implementation's equivalent of the following: sbcl --load \"build-it.lisp\" --system ~s"
               system-name))))
 
 
